@@ -41,7 +41,7 @@ pipeline {
                 echo 'Deploying to Server 1...'
                 sshagent(['server1-ssh-key']) {
                     sh """
-                        ssh -o StrictHostKeyChecking=no ubuntu@${SERVER1_IP} '
+                        ssh -o StrictHostKeyChecking=no kelompok-1@${SERVER1_IP} '
                             docker pull ${DOCKERHUB_USERNAME}/${IMAGE_NAME}:latest &&
                             docker stop wayshub-backend || true &&
                             docker rm wayshub-backend || true &&
