@@ -1,9 +1,9 @@
 {
   "development": {
-    "username": "root",
-    "password": "root",
+    "username": "k1",
+    "password": "k1",
     "database": "wayshub",
-    "host": "127.0.0.1",
+    "host": "10.71.208.251",
     "dialect": "mysql"
   },
   "test": {
