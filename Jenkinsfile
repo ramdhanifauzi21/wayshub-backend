@@ -45,7 +45,7 @@ pipeline {
                             docker pull ${DOCKERHUB_USERNAME}/${IMAGE_NAME}:latest &&
                             docker stop wayshub-backend || true &&
                             docker rm wayshub-backend || true &&
-                            docker run -d --name wayshub-backend --network wayshub-docker_wayshub-net -p 5000:5000 \
+                            docker run -d --name wayshub-backend --network team1-network -p 5000:5000 \
                                 -e JWT_PRIVATE_KEY=951836 \
                                 -e CLOUD_NAME=dlumdgloz \
                                 -e API_KEY=958682469343893 \
