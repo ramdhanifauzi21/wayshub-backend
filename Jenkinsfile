@@ -6,6 +6,7 @@ pipeline {
         DOCKERHUB_USERNAME = 'ramdhanifauzi'
         IMAGE_NAME = 'wayshub-backend'
         SERVER1_IP = '103.55.37.38'
+	DISCORD_WEBHOOK = credentials('discord-webhook')
     }
 
     stages {
@@ -62,10 +63,21 @@ pipeline {
 
     post {
         success {
-            echo 'Backend pipeline completed successfully!'
+            discordSend(
+                webhookURL: "${DISCORD_WEBHOOK}",
+                title: "✅ Build SUCCESS - ${env.JOB_NAME}",
+                description: "Build #${env.BUILD_NUMBER} berhasil deploy wayshub-frontend!",
+                result: currentBuild.currentResult
+            )
         }
         failure {
-            echo 'Backend pipeline failed!'
+            discordSend(
+                webhookURL: "${DISCORD_WEBHOOK}",
+                title: "❌ Build FAILED - ${env.JOB_NAME}",
+                description: "Build #${env.BUILD_NUMBER} gagal!",
+                result: currentBuild.currentResult
+            )
         }
     }
+
 }
