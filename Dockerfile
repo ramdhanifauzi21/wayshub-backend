@@ -1,6 +1,11 @@
+FROM node:12-alpine AS builder
+WORKDIR /home/app
+COPY package*.json ./
+RUN npm install
+COPY . .
+ 
 FROM node:12-alpine
 WORKDIR /home/app
-COPY . .
-RUN npm install
+COPY --from=builder /home/app .
 EXPOSE 5000
-CMD ["npm", "start"]
+CMD ["node", "index.js"]
