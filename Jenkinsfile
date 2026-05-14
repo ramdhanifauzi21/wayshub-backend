@@ -3,16 +3,19 @@ pipeline {
     environment {
         DOCKERHUB_CREDENTIALS = credentials('dockerhub-credentials')
         DOCKERHUB_USERNAME = 'ramdhanifauzi'
-        IMAGE_NAME = 'wayshub-frontend'
+        IMAGE_NAME = 'wayshub-backend'
         APP_SERVER = '10.194.61.3'
         DISCORD_WEBHOOK = credentials('discord-webhook')
-        REACT_APP_BASEURL = credentials('react-app-baseurl-production')
+        JWT_PRIVATE_KEY = credentials('jwt-private-key')
+        CLOUD_NAME = credentials('cloud-name')
+        API_KEY = credentials('api-key')
+        API_SECRET = credentials('api-secret')
     }
     stages {
         stage('Pull from GitHub') {
             steps {
                 echo 'Pulling latest code...'
-                git branch: 'production', url: 'https://github.com/ramdhanifauzi21/wayshub-frontend'
+                git branch: 'production', url: 'https://github.com/ramdhanifauzi21/wayshub-backend'
             }
         }
         stage('Build Docker Image') {
@@ -38,8 +41,17 @@ pipeline {
                 sshagent(['app-server-ssh-key']) {
                     sh """
                         ssh -o StrictHostKeyChecking=no fauzi@${APP_SERVER} '
-                            cd ~/fe-production &&
-                            echo "REACT_APP_BASEURL=${REACT_APP_BASEURL}" > .env &&
+                            cd ~/be-production &&
+                            cat > .env << EOF
+JWT_PRIVATE_KEY=${JWT_PRIVATE_KEY}
+CLOUD_NAME=${CLOUD_NAME}
+API_KEY=${API_KEY}
+API_SECRET=${API_SECRET}
+DB_HOST=10.194.61.4
+DB_USER=fauzi
+DB_PASSWORD=Fauzi123!
+DB_NAME=wayshub
+EOF
                             docker compose pull &&
                             docker compose up -d
                         '
@@ -53,7 +65,7 @@ pipeline {
             discordSend(
                 webhookURL: "${DISCORD_WEBHOOK}",
                 title: "✅ Build SUCCESS - ${env.JOB_NAME}",
-                description: "Build #${env.BUILD_NUMBER} berhasil deploy wayshub-frontend production!",
+                description: "Build #${env.BUILD_NUMBER} berhasil deploy wayshub-backend production!",
                 result: currentBuild.currentResult
             )
         }
