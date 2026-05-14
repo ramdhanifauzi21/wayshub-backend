@@ -1,72 +1,62 @@
 pipeline {
     agent any
-
     environment {
         DOCKERHUB_CREDENTIALS = credentials('dockerhub-credentials')
         DOCKERHUB_USERNAME = 'ramdhanifauzi'
         IMAGE_NAME = 'wayshub-backend'
-        SERVER1_IP = '103.55.37.38'
-	DISCORD_WEBHOOK = credentials('discord-webhook')
+        APP_SERVER = '103.23.199.139'
+        DISCORD_WEBHOOK = credentials('discord-webhook')
     }
-
     stages {
-
         stage('Pull from GitHub') {
             steps {
                 echo 'Pulling latest code...'
-                git branch: 'main', url: 'https://github.com/kelompok1-dumbways/wayshub-backend'
+                git branch: 'production', url: 'https://github.com/ramdhanifauzi21/wayshub-backend'
             }
         }
-
         stage('Build Docker Image') {
             steps {
                 echo 'Building Docker image...'
                 sh """
-                    docker build -t ${DOCKERHUB_USERNAME}/${IMAGE_NAME}:latest .
+                    docker build -t ${DOCKERHUB_USERNAME}/${IMAGE_NAME}:production .
                 """
             }
         }
-
         stage('Push to Docker Hub') {
             steps {
                 echo 'Pushing to Docker Hub...'
                 sh """
                     echo ${DOCKERHUB_CREDENTIALS_PSW} | docker login -u ${DOCKERHUB_CREDENTIALS_USR} --password-stdin
-                    docker push ${DOCKERHUB_USERNAME}/${IMAGE_NAME}:latest
+                    docker push ${DOCKERHUB_USERNAME}/${IMAGE_NAME}:production
                 """
             }
         }
-
-        stage('Deploy to Server 1') {
+        stage('Deploy to App Server') {
             steps {
-                echo 'Deploying to Server 1...'
-                sshagent(['server1-ssh-key']) {
+                echo 'Deploying to App Server...'
+                sshagent(['app-server-ssh-key']) {
                     sh """
-                        ssh -o StrictHostKeyChecking=no kelompok-1@${SERVER1_IP} '
-                            docker pull ${DOCKERHUB_USERNAME}/${IMAGE_NAME}:latest &&
-                            docker stop kelompok1-backend-production || true &&
-                            docker rm kelompok1-backend-production || true &&
-                            docker run -d --name kelompok1-backend-production --network team1-network -p 5000:5000 \
-                                -e JWT_PRIVATE_KEY=951836 \
-                                -e CLOUD_NAME=dlumdgloz \
-                                -e API_KEY=958682469343893 \
-                                -e API_SECRET=ujMVhZydB8NHd0z2w13HFwm4EEA \
-                                -v ~/wayshub-docker/wayshub-backend/config/config.json:/app/config/config.json \
-                                ${DOCKERHUB_USERNAME}/${IMAGE_NAME}:latest
+                        ssh -o StrictHostKeyChecking=no fauzi@${APP_SERVER} '
+                            docker pull ${DOCKERHUB_USERNAME}/${IMAGE_NAME}:production &&
+                            docker stop wayshub-backend-production || true &&
+                            docker rm wayshub-backend-production || true &&
+                            docker run -d \
+                                --name wayshub-backend-production \
+                                --restart always \
+                                -p 5000:5000 \
+                                ${DOCKERHUB_USERNAME}/${IMAGE_NAME}:production
                         '
                     """
                 }
             }
         }
-
     }
-
     post {
         success {
             discordSend(
                 webhookURL: "${DISCORD_WEBHOOK}",
                 title: "✅ Build SUCCESS - ${env.JOB_NAME}",
-                description: "Build #${env.BUILD_NUMBER} berhasil deploy wayshub-frontend!",
+                description: "Build #${env.BUILD_NUMBER} berhasil deploy wayshub-backend production!",
                 result: currentBuild.currentResult
             )
         }
@@ -74,10 +64,9 @@ pipeline {
             discordSend(
                 webhookURL: "${DISCORD_WEBHOOK}",
                 title: "❌ Build FAILED - ${env.JOB_NAME}",
-                description: "Build #${env.BUILD_NUMBER} gagal!",
+                description: "Build #${env.BUILD_NUMBER} gagal deploy wayshub-backend production!",
                 result: currentBuild.currentResult
             )
         }
     }
-
 }
