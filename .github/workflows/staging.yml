@@ -1,4 +1,4 @@
-name: Wayshub Backend CI/CD
+name: CI/CD Wayshub-Backend Staging
 
 on:
   push:
@@ -6,21 +6,38 @@ on:
       - staging
 
 jobs:
-  build-and-push:
+  build-and-deploy:
     runs-on: self-hosted
+
     steps:
-      - name: Checkout code
+      - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Login to DockerHub
-        uses: docker/login-action@v3
-        with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
+      - name: Add app-server to known hosts
+        run: ssh-keyscan -H 10.194.61.3 >> ~/.ssh/known_hosts
 
-      - name: Build and push image
-        uses: docker/build-push-action@v5
-        with:
-          context: .
-          push: true
-          tags: ramdhanifauzi/wayshub-backend:staging
+      - name: Login to DockerHub
+        run: echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login -u "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
+
+      - name: Build image
+        run: docker build -t ramdhanifauzi/wayshub-backend:staging .
+
+      - name: Push image to DockerHub
+        run: docker push ramdhanifauzi/wayshub-backend:staging
+
+      - name: Create .env on app-server
+        run: |
+          ssh fauzi@10.194.61.3 "cat > ~/be-staging/.env << 'EOF'
+          JWT_PRIVATE_KEY=${{ secrets.JWT_PRIVATE_KEY }}
+          CLOUD_NAME=${{ secrets.CLOUD_NAME }}
+          API_KEY=${{ secrets.API_KEY }}
+          API_SECRET=${{ secrets.API_SECRET }}
+          DB_HOST=${{ secrets.DB_HOST }}
+          DB_USER=${{ secrets.DB_USER }}
+          DB_PASSWORD=${{ secrets.DB_PASSWORD }}
+          DB_NAME=${{ secrets.DB_NAME }}
+          EOF"
+
+      - name: Deploy to app-server
+        run: |
+          ssh fauzi@10.194.61.3 "cd ~/be-staging && docker compose pull && docker compose up -d"
